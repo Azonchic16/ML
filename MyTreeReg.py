@@ -57,7 +57,7 @@ class Tree():
 
 class MyTreeReg():
     
-    def __init__(self, max_depth=5, min_samples_split=2, max_leafs=20):
+    def __init__(self, max_depth=5, min_samples_split=2, max_leafs=20, bins=None):
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.max_leafs = max_leafs
@@ -67,9 +67,8 @@ class MyTreeReg():
         self.potential_leafs = 1
         self.tree = Tree()
         self.curr = None
-        # self.bins = bins
+        self.bins = bins
         self.split_bins = None
-        # self.criterion = criterion
         self.fi = {}
 
     def __str__(self):
@@ -79,14 +78,9 @@ class MyTreeReg():
     def loss(self, N, y):
         return  np.sum((y - y.mean()) ** 2) / N
     
-    def get_best_split(self, X, y):
-        # print(self.tree.print_tree())
-        N = len(y)
-        S0 = self.loss(N, y)
-        X_numpy = X.to_numpy()
+    def get_best_split_feature_mean(self, N, S0, X_numpy, y):
         split_value = None
         ig = None
-        # if not self.split_bins:
         for i in range(len(self.names)):
             feature = pd.DataFrame({i: X_numpy[:,i], 'y': y})
             unique = feature[i].unique()
@@ -118,27 +112,53 @@ class MyTreeReg():
                 # elif ig == ig_new:
                 #     split_value = k
                 #     col_name = max(col_name, self.names[i])
-        # else:
-        #     for name in names:
-        #         min_feature, max_feature = min(X[name]), max(X[name])
-        #         splits = self.split_bins[name]
-        #         needed_splits = splits[(splits >= min_feature) & (splits < max_feature)]
-        #         for k in needed_splits:
-        #             left_df = X.loc[X[name] <= k]
-        #             right_df = X.loc[X[name] > k]
-        #             left = self.y[left_df.index]
-        #             right = self.y[right_df.index]
-        #             N1 = len(left)
-        #             N2 = len(right)
-        #             c_n_l = int(np.count_nonzero(left))
-        #             c_n_r = int(np.count_nonzero(right))
-        #             S1 = self.entropy_gini(N1, c_n_l)
-        #             S2 = self.entropy_gini(N2, c_n_r)
-        #             ig = S0 - (N1 / N) * S1 - (N2 / N) * S2
-        #             d.loc[len(d.index)] = [name, k, ig]
-        # d = d.sort_values(by=['ig', 'col_name'], ascending=[False, True])
         return col_name, split_value
-        # return None, None
+    
+    def get_best_split_bins(self, N, S0, X_numpy, y):
+        col_name = None
+        split_value = None
+        ig = None
+        for i in range(len(self.names)):
+            feature = pd.DataFrame({i: X_numpy[:,i], 'y': y})
+            min_feature, max_feature = min(feature[i]), max(feature[i])
+            splits = self.split_bins[self.names[i]]
+            needed_splits = splits[(splits >= min_feature) & (splits < max_feature)]
+            if not len(needed_splits) and not col_name:
+                col_name = None
+                split_value = None
+            for k in needed_splits:
+                if split_value is None: 
+                    split_value = k
+                    col_name = self.names[i]
+                left_df = feature.loc[feature[i] <= k]
+                right_df = feature.loc[feature[i] > k]
+                left = left_df['y']
+                right = right_df['y']
+                N1 = len(left)
+                N2 = len(right)
+                S1 = self.loss(N1, left)
+                S2 = self.loss(N2, right)
+                ig_new = S0 - (N1 / N) * S1 - (N2 / N) * S2
+                if ig is None:
+                    ig = ig_new
+                elif ig_new > ig:
+                    split_value = k
+                    col_name = self.names[i]
+                    ig = ig_new
+                # elif ig == ig_new:
+                #     split_value = k
+                #     col_name = max(col_name, self.names[i])
+        return col_name, split_value
+    
+    def get_best_split(self, X, y):
+        N = len(y)
+        S0 = self.loss(N, y)
+        X_numpy = X.to_numpy()
+        if not self.split_bins:
+            col_name, split_value = self.get_best_split_feature_mean(N, S0, X_numpy, y)
+        else:
+            col_name, split_value = self.get_best_split_bins(N, S0, X_numpy, y)
+        return col_name, split_value
     
     def get_split_values_or_bins(self, X):
         if self.bins:
@@ -154,8 +174,6 @@ class MyTreeReg():
                     self.split_bins[col] = split_hist
 
     def build_tree(self, X):
-        # self.tree.print_tree()
-        # print('')
         if self.leafs_cnt >= self.max_leafs or self.depth > self.max_depth:
             return
         if not self.tree.root:
@@ -168,12 +186,11 @@ class MyTreeReg():
             X_right = X.loc[X[col_name] > split_value]
             self.depth += 1
             self.potential_leafs += 1
-            # self.fi[col_name] += self.compute_feature_importance(X, X_left, X_right)
+            self.fi[col_name] += self.compute_feature_importance(X, X_left, X_right)
             self.build_tree(X_left)
         if not self.curr.left:
             y = self.y[X.index]
             col_name, split_value = self.get_best_split(X, y)
-            # print(col_name, split_value)
             if not self.is_leaf(y) and col_name: # узел
                 self.curr.left = Node((col_name, split_value))
                 self.curr.left.parent = self.curr
@@ -181,12 +198,11 @@ class MyTreeReg():
                 self.curr = self.curr.left
                 X_left = X.loc[X[col_name] <= split_value]
                 X_right = X.loc[X[col_name] > split_value]
-                # self.fi[col_name] += self.compute_feature_importance(X, X_left, X_right)
+                self.fi[col_name] += self.compute_feature_importance(X, X_left, X_right)
                 self.depth += 1
                 self.potential_leafs += 1
                 self.build_tree(X_left)
             else: #  лист
-                # print('Зашел в левый лист')
                 self.curr.left = Node(('leaf_left', y.mean()))
                 self.leafs_sum += self.curr.left.value[1]
                 self.curr.left.is_leaf = True
@@ -207,7 +223,7 @@ class MyTreeReg():
                 self.potential_leafs += 1
                 X_left = X_curr.loc[X_curr[col_name] <= split_value]
                 X_right = X_curr.loc[X_curr[col_name] > split_value]
-                # self.fi[col_name] += self.compute_feature_importance(X_curr, X_left, X_right)
+                self.fi[col_name] += self.compute_feature_importance(X_curr, X_left, X_right)
                 self.build_tree(X_left)
             else:
                 self.curr.right = Node(('leaf_right', y_r.mean()))
@@ -231,8 +247,8 @@ class MyTreeReg():
         self.y = y
         self.N = len(X)
         self.names = X.columns.values.tolist()
-        # self.get_split_values_or_bins(X)
-        # self.fi.update({col: 0 for col in X.columns.values})
+        self.get_split_values_or_bins(X)
+        self.fi.update({col: 0 for col in self.names})
         self.build_tree(X)
 
     def is_leaf(self, y):
@@ -241,20 +257,12 @@ class MyTreeReg():
             self.min_samples_split > len(y) or self.leafs_cnt + self.potential_leafs >= self.max_leafs:
             return True
         return False
-
-    def predict_proba(self, X):
-        proba = []
-        for ind in X.index.values:
-            s = X.loc[ind]
-            proba.append(self.tree.find_proba(s))
-        return proba
     
     def predict(self, X):
-        proba = []
+        pred = []
         for ind in X.index.values:
             s = X.loc[ind]
-            proba.append(self.tree.find_proba(s))
-        pred = [1 if val > 0.5 else 0 for val in proba]
+            pred.append(self.tree.find_proba(s))
         return pred
     
     def feature_importance(self, N_p, N, N_l, N_r, I, I_l, I_r):
@@ -267,12 +275,9 @@ class MyTreeReg():
         N = len(X)
         N_l = len(left)
         N_r = len(right)
-        c_n_l = int(np.count_nonzero(left))
-        c_n_r = int(np.count_nonzero(right))
-        c_n = int(np.count_nonzero(y))
-        S = self.entropy_gini(N, c_n)
-        S1 = self.entropy_gini(N_l, c_n_l)
-        S2 = self.entropy_gini(N_r, c_n_r)
+        S = self.loss(N, y)
+        S1 = self.loss(N_l, left)
+        S2 = self.loss(N_r, right)
         return self.feature_importance(N, self.N, N_l, N_r, S, S1, S2)
     
 
@@ -280,10 +285,9 @@ class MyTreeReg():
 #     X = load_diabetes()
 #     df = pd.DataFrame(X['data'], columns=X['feature_names'])
 #     y = X['target']
-#     lst = [(1,1,2), (3,2,5), (5,100,10), (4,50,17), (10,40,21), (15,35,30)]
-#     lst = [lst[3]]
-#     for max_depth, min_samples_split, max_leafs in lst:
-#         model = MyTreeReg(max_depth=max_depth, min_samples_split=min_samples_split, max_leafs=max_leafs)
+#     lst = [(1,1,2,8), (3,2,5,None), (5,100,10, 4), (4,50,17,16), (10,40,21, 21), (15,35,30,30)]
+#     lst = [lst[2]]
+#     for max_depth, min_samples_split, max_leafs, bins in lst:
+#         model = MyTreeReg(max_depth=max_depth, min_samples_split=min_samples_split, max_leafs=max_leafs, bins=bins)
 #         model.fit(df, y)
-#         print(round(model.leafs_sum, 6))
-#         print(model.leafs_cnt)
+#         print(f'{model.leafs_cnt}      {round(model.leafs_sum, 6)}')
