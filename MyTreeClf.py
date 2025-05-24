@@ -88,55 +88,93 @@ class MyTreeClf():
                                 (N - count_nonzero) * MyTreeClf.custom_log((N - count_nonzero) / N)) / N
         return 1 - (count_nonzero / N) ** 2 - ((N - count_nonzero) / N) ** 2
     
+    def get_best_split_feature_mean(self, N, S0, X_numpy, y):
+        split_value = None
+        ig = None
+        for i in range(len(self.names)):
+            feature = pd.DataFrame({i: X_numpy[:,i], 'y': y})
+            unique = feature[i].unique()
+            unique = np.sort(unique)
+            if len(unique) == 1:
+                col_name = self.names[i]
+                split_value = unique[0]
+                return col_name, split_value
+            feature_unique_mean = (unique[:-1] + unique[1:]) / 2
+            for k in feature_unique_mean:
+                if split_value is None: 
+                    split_value = k
+                    col_name = self.names[i]
+                left_df = feature.loc[feature[i] <= k]
+                right_df = feature.loc[feature[i] > k]
+                left = left_df['y']
+                right = right_df['y']
+                N1 = len(left)
+                N2 = len(right)
+                c_n_l = int(np.count_nonzero(left))
+                c_n_r = int(np.count_nonzero(right))
+                S1 = self.entropy_gini(N1, c_n_l)
+                S2 = self.entropy_gini(N2, c_n_r)
+                ig_new = S0 - (N1 / N) * S1 - (N2 / N) * S2
+                if ig is None:
+                    ig = ig_new
+                elif ig_new > ig:
+                    split_value = k
+                    col_name = self.names[i]
+                    ig = ig_new
+                # elif ig == ig_new:
+                #     split_value = k
+                #     col_name = max(col_name, self.names[i])
+        return col_name, split_value
+    
+    def get_best_split_bins(self, N, S0, X_numpy, y):
+        col_name = None
+        split_value = None
+        ig = None
+        for i in range(len(self.names)):
+            feature = pd.DataFrame({i: X_numpy[:,i], 'y': y})
+            min_feature, max_feature = min(feature[i]), max(feature[i])
+            splits = self.split_bins[self.names[i]]
+            needed_splits = splits[(splits >= min_feature) & (splits < max_feature)]
+            if not len(needed_splits) and not col_name:
+                col_name = None
+                split_value = None
+            for k in needed_splits:
+                if split_value is None: 
+                    split_value = k
+                    col_name = self.names[i]
+                left_df = feature.loc[feature[i] <= k]
+                right_df = feature.loc[feature[i] > k]
+                left = left_df['y']
+                right = right_df['y']
+                N1 = len(left)
+                N2 = len(right)
+                c_n_l = int(np.count_nonzero(left))
+                c_n_r = int(np.count_nonzero(right))
+                S1 = self.entropy_gini(N1, c_n_l)
+                S2 = self.entropy_gini(N2, c_n_r)
+                ig_new = S0 - (N1 / N) * S1 - (N2 / N) * S2
+                if ig is None:
+                    ig = ig_new
+                elif ig_new > ig:
+                    split_value = k
+                    col_name = self.names[i]
+                    ig = ig_new
+                # elif ig == ig_new:
+                #     split_value = k
+                #     col_name = max(col_name, self.names[i])
+        return col_name, split_value
+    
     def get_best_split(self, X, y):
-        names = X.columns.values.tolist()
         N = len(y)
         count_nonzero = np.count_nonzero(y)
-        d = pd.DataFrame(columns=['col_name', 'split_value', 'ig'])
+        # d = pd.DataFrame(columns=['col_name', 'split_value', 'ig'])
         S0 = self.entropy_gini(N, count_nonzero)
         X_numpy = X.to_numpy()
         if not self.split_bins:
-            for i in range(len(X.columns)):
-                feature = pd.DataFrame({i: X_numpy[:,i], 'y': y})
-                unique = feature[i].unique()
-                unique = np.sort(unique)
-                feature_unique_mean = (unique[:-1] + unique[1:]) / 2
-                for k in range(len(feature_unique_mean)):
-                    left_df = feature.loc[feature[i] <= feature_unique_mean[k]]
-                    right_df = feature.loc[feature[i] > feature_unique_mean[k]]
-                    left = left_df['y']
-                    right = right_df['y']
-                    N1 = len(left)
-                    N2 = len(right)
-                    c_n_l = int(np.count_nonzero(left))
-                    c_n_r = int(np.count_nonzero(right))
-                    S1 = self.entropy_gini(N1, c_n_l)
-                    S2 = self.entropy_gini(N2, c_n_r)
-                    ig = S0 - (N1 / N) * S1 - (N2 / N) * S2
-                    d.loc[len(d.index)] = [names[i], feature_unique_mean[k], ig]
+            col_name, split_value = self.get_best_split_feature_mean(N, S0, X_numpy, y)
         else:
-            for name in names:
-                min_feature, max_feature = min(X[name]), max(X[name])
-                splits = self.split_bins[name]
-                needed_splits = splits[(splits >= min_feature) & (splits < max_feature)]
-                for k in needed_splits:
-                    left_df = X.loc[X[name] <= k]
-                    right_df = X.loc[X[name] > k]
-                    left = self.y[left_df.index]
-                    right = self.y[right_df.index]
-                    N1 = len(left)
-                    N2 = len(right)
-                    c_n_l = int(np.count_nonzero(left))
-                    c_n_r = int(np.count_nonzero(right))
-                    S1 = self.entropy_gini(N1, c_n_l)
-                    S2 = self.entropy_gini(N2, c_n_r)
-                    ig = S0 - (N1 / N) * S1 - (N2 / N) * S2
-                    d.loc[len(d.index)] = [name, k, ig]
-        d = d.sort_values(by=['ig', 'col_name'], ascending=[False, True])
-        if len(d):
-            col_name, split_value, ig = d.iloc[0, 0], d.iloc[0, 1], d.iloc[0, 2]
-            return col_name, split_value
-        return None, None
+            col_name, split_value = self.get_best_split_bins(N, S0, X_numpy, y)
+        return col_name, split_value
     
     def get_split_values_or_bins(self, X):
         if self.bins:
@@ -152,8 +190,6 @@ class MyTreeClf():
                     self.split_bins[col] = split_hist
 
     def build_tree(self, X):
-        # self.tree.print_tree()
-        # print('')
         if self.leafs_cnt >= self.max_leafs or self.depth > self.max_depth:
             return
         if not self.tree.root:
@@ -227,6 +263,7 @@ class MyTreeClf():
     def fit(self, X, y):
         self.y = y
         self.N = len(X)
+        self.names = X.columns.values.tolist()
         self.get_split_values_or_bins(X)
         self.fi.update({col: 0 for col in X.columns.values})
         self.build_tree(X)
