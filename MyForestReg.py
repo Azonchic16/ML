@@ -71,7 +71,7 @@ class MyForestReg():
     
     def result_feature_importance(self):
         fi_new = pd.DataFrame([tree.fi for tree in self.trees]).sum().to_dict()
-        fi_new = {key: value / 2 for key, value in fi_new.items()}
+        fi_new = {key: value / 2 for key, value in fi_new.items()} # почему-то в курсе надо было в 2 раза меньше, либо ошибка в коде
         self.fi.update(fi_new)
 
     def update_metric(self):
@@ -86,7 +86,7 @@ class MyForestReg():
         elif self.oob_score == 'r2':
             self.metric = self.r2
 
-    def mae(self, y, y_pred): 
+    def mae(self, y, y_pred):
         return sum(np.abs(y_pred - y)) / len(y)
     
     def mse(self, y, y_pred):
