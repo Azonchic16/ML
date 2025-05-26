@@ -1,59 +1,7 @@
 import pandas as pd
 import numpy as np
+from Tree import Tree, Node        
 
-
-class Node():
-
-    def __init__(self, value=None):
-        self.df = None
-        self.parent = None
-        self.value = value
-        self.left = None
-        self.right = None
-        self.is_leaf = False
-
-
-class Tree():
-
-    def __init__(self):
-        self.root = None
-
-    def print_tree(self):
-        """Печатает дерево в консоли, начиная с корня"""
-        if not self.root:
-            print("(пустое дерево)")
-            return
-        
-        def _print(node, prefix="", is_left=True):
-            if not node:
-                return
-            
-            if node.is_leaf:
-                label = f"{node.value[0]} = {node.value[1]}" if is_left else f"{node.value[0]} = {node.value[1]}"
-            else:
-                label = f"{node.value[0]} > {node.value[1]}"
-            
-            print(prefix + ("└── " if not prefix else "├── ") + label)
-            
-            new_prefix = prefix + ("    " if not prefix else "│   ")
-            
-            _print(node.left, new_prefix, True)
-            _print(node.right, new_prefix, False)
-        
-        _print(self.root, "", False)
-        
-    def find_proba(self, s):
-        def tree_traversal(node, s):
-            if node.is_leaf:
-                return node.value[1]
-            else:
-                feature, split_val = node.value[0], node.value[1]
-                if s[feature] < split_val:
-                    return tree_traversal(node.left, s)
-                else:
-                    return tree_traversal(node.right, s)
-        return tree_traversal(self.root, s)
-        
 
 class MyTreeClf():
     
@@ -308,16 +256,3 @@ class MyTreeClf():
         S1 = self.entropy_gini(N_l, c_n_l)
         S2 = self.entropy_gini(N_r, c_n_r)
         return self.feature_importance(N, self.N, N_l, N_r, S, S1, S2)
-    
-
-if __name__ == '__main__':
-    df = pd.read_csv('data/BankNote_Authentication.xls')
-    y = df['class']
-    del df['class']
-    lst = [(1,1,2,8, 'gini'), (3,2,5,None,'gini'), (5,200,10,4,'entropy'), (4,100,17,16,'gini'), (10,40,21,10,'gini'), (15,20,30,6,'gini')]
-    for max_depth, min_samples_split, max_leafs, bins, criterion in lst:
-        model = MyTreeClf(max_depth=max_depth, min_samples_split=min_samples_split, max_leafs=max_leafs, bins=bins, criterion=criterion)
-        model.fit(df, y)
-        print(round(model.leafs_sum, 6))
-        print(model.leafs_cnt)
-        print(model.fi)
