@@ -35,8 +35,8 @@ class MyForestReg():
         self.N = X.shape[0]
         random.seed(self.random_state)
         self.fi.update({col: 0 for col in self.cols})
-        y_oob_lst = []
-        pred_oob_lst = []
+        y_oob_lst = np.full((self.N, self.n_estimators), np.nan)
+        pred_oob_lst = np.full((self.N, self.n_estimators), np.nan)
         for tree in range(self.n_estimators):
             cols_learn = random.sample(self.cols, round(self.cols_count * self.max_features))
             rows_idx = random.sample(range(self.N), round(self.N * self.max_samples))
@@ -46,17 +46,24 @@ class MyForestReg():
             X_learn = X_learn.iloc[rows_idx]
             X_oob = X_oob.iloc[rows_idx_oob]
             y_learn = y.iloc[rows_idx]
-            y_oob = y.iloc[rows_idx_oob]
-            y_oob_lst.append(y_oob.mean())
+            y_oob = np.full(self.N, np.nan)
+            y_oob[rows_idx_oob] = y.iloc[rows_idx_oob]
+            y_oob_lst[:, tree] = y_oob
             model = MyTreeReg(max_depth=self.max_depth, min_samples_split=self.min_samples_split, max_leafs=self.max_leafs, bins=self.bins)
             model.fit(X_learn, y_learn, N=self.N)
             self.trees[tree] = model
             self.leafs_cnt += model.leafs_cnt
-            pred_oob = model.predict(X_oob)
-            pred_oob_lst.append(np.array(pred_oob).mean())
-        # y_mean_oob = np.array([np.array(y_oob_lst).mean()])
-        # pred_mean_oob = np.array([np.array(pred_oob_lst).mean()])
-        self.oob_score_ = self.metric(np.array(y_oob_lst), np.array(pred_oob_lst))
+            pred_oob = np.full(self.N, np.nan)
+            pred_oob[rows_idx_oob] = model.predict(X_oob)
+            print(len(pred_oob))
+            pred_oob_lst[:, tree] = pred_oob
+        pred_oob_mean = np.nanmean(pred_oob_lst, axis=1)
+        pred_oob_mean = pred_oob_mean[~np.isnan(pred_oob_mean)]
+        y_oob_mean = np.nanmean(y_oob_lst, axis=1)
+        y_oob_mean = y_oob_mean[~np.isnan(y_oob_mean)]
+        print(len(pred_oob_lst))
+        print(len(y_oob_lst))
+        self.oob_score_ = self.metric(y_oob_mean, pred_oob_mean)
         self.result_feature_importance()
 
     def predict(self, X):
