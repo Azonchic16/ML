@@ -177,7 +177,7 @@ class MyTreeReg():
         if self.leafs_cnt >= self.max_leafs or self.depth > self.max_depth:
             return
         if not self.tree.root:
-            y = self.y[X.index]
+            y = self.y.loc[X.index]
             col_name, split_value = self.get_best_split(X, y)
             self.tree.root = Node((col_name, split_value))
             self.tree.root.df = X
@@ -189,7 +189,7 @@ class MyTreeReg():
             self.fi[col_name] += self.compute_feature_importance(X, X_left, X_right)
             self.build_tree(X_left)
         if not self.curr.left:
-            y = self.y[X.index]
+            y = self.y.loc[X.index]
             col_name, split_value = self.get_best_split(X, y)
             if not self.is_leaf(y) and col_name: # узел
                 self.curr.left = Node((col_name, split_value))
@@ -212,7 +212,7 @@ class MyTreeReg():
                 self.build_tree(self.curr.df)
         elif self.curr.left and not self.curr.right:
             X_curr = self.curr.df.loc[self.curr.df[self.curr.value[0]] > self.curr.value[1]]
-            y_r = self.y[X_curr.index]
+            y_r = self.y.loc[X_curr.index]
             col_name, split_value = self.get_best_split(X_curr, y_r)
             if not self.is_leaf(y_r) and col_name:
                 self.curr.right = Node((col_name, split_value))
@@ -269,9 +269,9 @@ class MyTreeReg():
         return N_p * (I - N_l * I_l / N_p - N_r * I_r / N_p) / N
     
     def compute_feature_importance(self, X, X_left, X_right):
-        left = self.y[X_left.index]
-        right = self.y[X_right.index]
-        y = self.y[X.index]
+        left = self.y.loc[X_left.index]
+        right = self.y.loc[X_right.index]
+        y = self.y.loc[X.index]
         N = len(X)
         N_l = len(left)
         N_r = len(right)
