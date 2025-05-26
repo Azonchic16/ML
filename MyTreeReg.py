@@ -1,59 +1,8 @@
 import pandas as pd
 import numpy as np
 from sklearn.datasets import load_diabetes
+from Tree import Node, Tree
 
-class Node():
-
-    def __init__(self, value=None):
-        self.df = None
-        self.parent = None
-        self.value = value
-        self.left = None
-        self.right = None
-        self.is_leaf = False
-
-
-class Tree():
-
-    def __init__(self):
-        self.root = None
-
-    def print_tree(self):
-        """Печатает дерево в консоли, начиная с корня"""
-        if not self.root:
-            print("(пустое дерево)")
-            return
-        
-        def _print(node, prefix="", is_left=True):
-            if not node:
-                return
-            
-            if node.is_leaf:
-                label = f"{node.value[0]} = {node.value[1]}" if is_left else f"{node.value[0]} = {node.value[1]}"
-            else:
-                label = f"{node.value[0]} > {node.value[1]}"
-            
-            print(prefix + ("└── " if not prefix else "├── ") + label)
-            
-            new_prefix = prefix + ("    " if not prefix else "│   ")
-            
-            _print(node.left, new_prefix, True)
-            _print(node.right, new_prefix, False)
-        
-        _print(self.root, "", False)
-        
-    def find_proba(self, s):
-        def tree_traversal(node, s):
-            if node.is_leaf:
-                return node.value[1]
-            else:
-                feature, split_val = node.value[0], node.value[1]
-                if s[feature] < split_val:
-                    return tree_traversal(node.left, s)
-                else:
-                    return tree_traversal(node.right, s)
-        return tree_traversal(self.root, s)
-        
 
 class MyTreeReg():
     
@@ -243,7 +192,10 @@ class MyTreeReg():
             self.depth -= 1
             self.build_tree(self.curr.df)
 
-    def fit(self, X, y):
+    def fit(self, X, y, N=0):
+        '''N - параметр передается при обучениие случайного леса (количество строк в исходном датасете)'''
+        if N:
+            self.N = N
         self.y = y
         self.N = len(X)
         self.names = X.columns.values.tolist()
@@ -279,15 +231,3 @@ class MyTreeReg():
         S1 = self.loss(N_l, left)
         S2 = self.loss(N_r, right)
         return self.feature_importance(N, self.N, N_l, N_r, S, S1, S2)
-    
-
-# if __name__ == '__main__':
-#     X = load_diabetes()
-#     df = pd.DataFrame(X['data'], columns=X['feature_names'])
-#     y = X['target']
-#     lst = [(1,1,2,8), (3,2,5,None), (5,100,10, 4), (4,50,17,16), (10,40,21, 21), (15,35,30,30)]
-#     lst = [lst[2]]
-#     for max_depth, min_samples_split, max_leafs, bins in lst:
-#         model = MyTreeReg(max_depth=max_depth, min_samples_split=min_samples_split, max_leafs=max_leafs, bins=bins)
-#         model.fit(df, y)
-#         print(f'{model.leafs_cnt}      {round(model.leafs_sum, 6)}')
