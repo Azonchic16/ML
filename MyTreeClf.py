@@ -208,7 +208,10 @@ class MyTreeClf():
             self.depth -= 1
             self.build_tree(self.curr.df)
 
-    def fit(self, X, y):
+    def fit(self, X, y, N=0):
+        '''N - параметр передается при обучениие случайного леса (количество строк в исходном датасете)'''
+        if N:
+            self.N = N
         self.y = y
         self.N = len(X)
         self.names = X.columns.values.tolist()
