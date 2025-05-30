@@ -73,14 +73,27 @@ class MyLogReg():
         if self.metric is None:
             return None
         elif self.metric  == 'roc_auc':
+            prb = np.round(prb, 10)
+            ind_prob = lambda p1, p2: 1.0 if p1 < p2 else 0.0 if p1 > p2 else 0.5
+            ind_labels = lambda l1, l2: 1 if l1 < l2 else 0
+            scores, labels = zip(*sorted(zip(prb, y), key=lambda x: x[0], reverse=True))
+            l = y.shape[0]
+            num_p = sum(y == 1)
+            nn = l - num_p
             roc_auc = 0
-            positive = np.count_nonzero(y == 1)
-            negative = np.count_nonzero(y == 0)
-            for i in range(n):
-                roc_auc += sum(np.heaviside(y - y[i], 0) * np.heaviside(np.round(prb - prb[i], 10), 0.5))
-            roc_auc = roc_auc / (positive * negative)
-            return roc_auc
+            for i in range(l):
+                for j in range(l):
+                    indl = ind_labels(labels[i], labels[j])
+                    indpr = ind_prob(scores[i], scores[j])
+                    roc_auc += indpr * indl
+            return roc_auc / (nn * num_p)
         else:
+            TP = np.count_nonzero((prb == 1) & (prb == y))
+            TN = np.count_nonzero((prb == 0) & (prb == y))
+            FN = np.count_nonzero((prb == 0) & (prb != y))
+            FP = np.count_nonzero((prb == 1) & (prb != y))
+            accuracy = (TP + TN) / (TP + TN + FN + FP)
+            precision = TP / (TP + FP)
             TP = np.count_nonzero((prb == 1) & (prb == y))
             TN = np.count_nonzero((prb == 0) & (prb == y))
             FN = np.count_nonzero((prb == 0) & (prb != y))
