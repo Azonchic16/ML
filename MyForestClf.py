@@ -60,9 +60,11 @@ class MyForestClf():
         pred_oob_lst = pred_oob_lst[~np.all(np.isnan(pred_oob_lst), axis=1)]
         y_oob_lst = y_oob_lst[~np.all(np.isnan(y_oob_lst), axis=1)]
         pred_oob_mean = np.nanmean(pred_oob_lst, axis=1)
-        pred_oob_prob = np.where(pred_oob_mean > 0.5, 1, 0)
         y_oob_mean = np.nanmean(y_oob_lst, axis=1)
-        self.oob_score_ = self.metric(pred_oob_prob, y_oob_mean)
+        if self.metric == self.roc_auc:
+            self.oob_score_ = self.metric(pred_oob_mean, y_oob_mean)
+        else:
+            self.oob_score_ = self.metric(np.where(pred_oob_mean > 0.5, 1, 0), y_oob_mean)
         self.result_feature_importance()
 
     def predict(self, X, type):
@@ -113,18 +115,29 @@ class MyForestClf():
         TP = np.count_nonzero((prb == 1) & (prb == y))
         FN = np.count_nonzero((prb == 0) & (prb != y))
         return TP / (TP + FN)
-    
+
     def f1(self, prb, y):
         return (2 * self.precision(prb, y) * self.recall(prb, y)) / (self.precision(prb, y) + self.recall(prb, y))
     
     def roc_auc(self, prb, y):
+        prb = np.round(prb, 10)
+        ind_prob = lambda p1, p2: 1.0 if p1 < p2 else 0.0 if p1 > p2 else 0.5
+        ind_labels = lambda l1, l2: 1 if l1 < l2 else 0
+
+        scores, labels = zip(*sorted(zip(prb, y), key=lambda x: x[0], reverse=True))
+
+        l = y.shape[0]
+        num_p = sum(y == 1)
+        nn = l - num_p
+
         roc_auc = 0
-        positive = np.count_nonzero(y == 1)
-        negative = np.count_nonzero(y == 0)
-        for i in range(len(y)):
-            roc_auc += sum(np.heaviside(y - y[i], 0) * np.heaviside(np.round(prb - prb[i], 10), 0.5))
-        roc_auc = roc_auc / (positive * negative)
-        return roc_auc
+
+        for i in range(l):
+            for j in range(l):
+                indl = ind_labels(labels[i], labels[j])
+                indpr = ind_prob(scores[i], scores[j])
+                roc_auc += indpr * indl
+        return roc_auc / (num_p * nn)
     
     def update_metric(self):
         if not self.oob_score or self.oob_score == 'accuracy':
