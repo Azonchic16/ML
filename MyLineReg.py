@@ -5,7 +5,7 @@ import random
 
 class MyLineReg():
     
-    def __init__(self, weights=None, n_iter=1000, learning_rate=0.000001, metric=None, reg=None,
+    def __init__(self, weights=None, n_iter=100, learning_rate=0.1, metric=None, reg=None,
                 l1_coef=0, l2_coef=0, sgd_sample=None, random_state=42):            
         self.n_iter = n_iter
         self.learning_rate = learning_rate
@@ -27,10 +27,10 @@ class MyLineReg():
         X.insert(0, 'x0', [1] * len(X))
         self.weights = np.ones(m + 1)
         alpha = self.dynamic_learning_rate()
-#         random.seed(self.random_state)
-#         X = X.reset_index()
-#         del X['index']
-        for i in range(1, self.n_iter + 1):
+        random.seed(self.random_state)
+        X = X.reset_index()
+        del X['index']
+        for i in range(1, self.n_iter + 1):            
             y_pred = np.dot(X, self.weights)
             MSE = (1 / n) * sum((y_pred - y) ** 2) + self.regularization()[0]
             sample_index = self.sample(X)
@@ -43,7 +43,7 @@ class MyLineReg():
         
             
     def get_coef(self):
-        return self.weights
+        return self.weights[1:]
             
     def __str__(self):
         return np.sum(self.weights[1:])
