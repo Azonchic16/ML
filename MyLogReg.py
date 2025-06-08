@@ -4,7 +4,7 @@ import random
 
 class MyLogReg():
     
-    def __init__(self, n_iter=10, learning_rate=0.01, weights=None, metric=None, reg=None,
+    def __init__(self, n_iter=10, learning_rate=0.1, weights=None, metric=None, reg=None,
                 l1_coef=0, l2_coef=0, sgd_sample=None, random_state=42):
         self.n_iter = n_iter
         self.learning_rate = learning_rate
@@ -43,6 +43,8 @@ class MyLogReg():
             else:
                 self.sgd(sample_index, X, y, alpha, i)
         self.metric_value = self.metrics(X, y)
+        self.weights = self.weights[1:]
+        del X['x0']
         
     def get_coef(self):
         return np.mean(self.weights[1:])
