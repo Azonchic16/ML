@@ -40,6 +40,7 @@ class MyLineReg():
             else:
                 self.sgd(sample_index, X, y, alpha, i)
         self.metric_value = self.metrics(X, y)
+        del X['x0']
         
             
     def get_coef(self):
@@ -51,6 +52,7 @@ class MyLineReg():
     def predict(self, X):
         X.insert(0, 'x0', [1] * len(X))
         self.pred = np.dot(X, self.weights)
+        del X['x0']
         return self.pred
     
     def metrics(self, X: pd.DataFrame, y: pd.Series):
