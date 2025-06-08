@@ -25,12 +25,12 @@ class MyKNNReg:
         N = len(self.features)
         for i in range(M):
             Y_features = np.array(Y.iloc[i])
-            distances = dict()
+            distances = []
             for j in range(N):
                 X_features = np.array(self.features.iloc[j])
                 dist = self.metrics(X_features, Y_features)
-                distances[dist] = self.target[j]
-            dist_sort = sorted(distances.items())
+                distances.append((dist, self.target[j]))
+            dist_sort = sorted(distances)
             target_k = np.array([dist_sort[i][1] for i in range(self.k)])
             if self.weight == 'uniform':
                 y_pred.append(target_k.mean())
