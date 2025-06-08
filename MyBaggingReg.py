@@ -16,7 +16,6 @@ class MyBaggingReg():
         self.random_state = random_state
         self.oob_score = oob_score
         self.estimators = []
-        self.estimator
         self.oob_score_ = None
         self.update_metric()
 
