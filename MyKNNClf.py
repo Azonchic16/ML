@@ -25,12 +25,12 @@ class MyKNNClf():
         N = len(self.features)
         for i in range(M):
             Y_features = np.array(Y.iloc[i])
-            distances = dict()
+            distances = []
             for j in range(N):
                 X_features = np.array(self.features.iloc[j])
                 dist = self.metrics(X_features, Y_features)
-                distances[dist] = self.target[j]
-            distances = sorted(distances.items())
+                distances.append((dist, self.target[j]))
+            distances = sorted(distances)
             classes = np.array([i[1] for i in distances[:self.k]])
             dists = np.array([i[0] for i in distances[:self.k]])
             self.weights_predict(classes, dists, y_pred)
@@ -42,12 +42,12 @@ class MyKNNClf():
         N = len(self.features)
         for i in range(M):
             Y_features = np.array(Y.iloc[i])
-            distances = dict()
+            distances = []
             for j in range(N):
                 X_features = np.array(self.features.iloc[j])
                 dist = self.metrics(X_features, Y_features)
-                distances[dist] = self.target[j]
-            distances = sorted(distances.items())
+                distances.append((dist, self.target[j]))
+            distances = sorted(distances)
             classes = [i[1] for i in distances[:self.k]]
             dists = np.array([i[0] for i in distances[:self.k]])
             self.weights_predict_proba(classes, dists, prb_lst)
