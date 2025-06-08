@@ -212,9 +212,9 @@ class MyTreeReg():
     
     def predict(self, X):
         pred = []
-        for ind in X.index.values:
-            s = X.loc[ind]
-            pred.append(self.tree.find_proba(s))
+        for ind, row in X.iterrows():
+            # s = X.loc[ind]
+            pred.append(self.tree.find_proba(row))
         return pred
     
     def feature_importance(self, N_p, N, N_l, N_r, I, I_l, I_r):
