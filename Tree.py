@@ -44,7 +44,7 @@ class Tree():
                 return node.value[1]
             else:
                 feature, split_val = node.value[0], node.value[1]
-                if s[feature] < split_val:
+                if s[feature] <= split_val:
                     return tree_traversal(node.left, s)
                 else:
                     return tree_traversal(node.right, s)
