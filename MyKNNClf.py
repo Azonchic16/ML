@@ -14,7 +14,7 @@ class MyKNNClf():
     def __str__(self):
         return f'MyKNNClf k={self.k}' 
         
-    def fit(self, X: pd.DataFrame(), y: pd.Series()):
+    def fit(self, X: pd.DataFrame, y: pd.Series):
         self.features = X
         self.target = y
         self.train_size = (len(X), len(X.columns))
