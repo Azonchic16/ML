@@ -48,7 +48,6 @@ class MyBaggingReg():
             y_oob[rows_idx_oob] = y.iloc[rows_idx_oob]
             y_oob_lst[:, i] = y_oob
             X_oob.reset_index(inplace=True, drop=True)
-            #y_oob.reset_index(inplace=True, drop=True)
             pred_oob = np.full(self.N, np.nan)
             pred_oob[rows_idx_oob] = model.predict(X_oob)
             pred_oob_lst[:, i] = pred_oob
