@@ -54,7 +54,7 @@ class MyLogReg():
             n = len(X)
             X.insert(0, 'x0', [1] * n)
         prb = 1 / (1 + np.exp(-np.dot(X, self.weights)))
-        return np.mean(prb)
+        return prb
     
     def predict(self, X):
         if not(len(self.weights) == len(X.columns)):
@@ -62,7 +62,7 @@ class MyLogReg():
             X.insert(0, 'x0', [1] * n)
         prb = 1 / (1 + np.exp(-np.dot(X, self.weights)))
         y_pred = self.classification(prb, 0.5)
-        return int(sum(prb))
+        return y_pred
     
     def metrics(self, X: pd.DataFrame, y: pd.Series):
         y = np.array(y)
