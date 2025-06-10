@@ -19,6 +19,7 @@ class MyTreeReg():
         self.bins = bins
         self.split_bins = None
         self.fi = {}
+        self.leafs = []
 
     def __str__(self):
         attrs = vars(self)
@@ -152,10 +153,11 @@ class MyTreeReg():
                 self.potential_leafs += 1
                 self.build_tree(X_left)
             else: #  лист
-                self.curr.left = Node(('leaf_left', y.mean()))
+                self.curr.left = Node(['leaf_left', y.mean(), X.index.values.tolist()])
                 self.leafs_sum += self.curr.left.value[1]
                 self.curr.left.is_leaf = True
                 self.curr.left.parent = self.curr
+                self.leafs.append(self.curr.left)
                 self.leafs_cnt += 1
                 self.potential_leafs -= 1
                 self.build_tree(self.curr.df)
@@ -175,10 +177,11 @@ class MyTreeReg():
                 self.fi[col_name] += self.compute_feature_importance(X_curr, X_left, X_right)
                 self.build_tree(X_left)
             else:
-                self.curr.right = Node(('leaf_right', y_r.mean()))
+                self.curr.right = Node(['leaf_right', y_r.mean(), X_curr.index.values.tolist()])
                 self.leafs_sum += self.curr.right.value[1]
                 self.curr.right.is_leaf = True
                 self.curr.right.parent = self.curr
+                self.leafs.append(self.curr.right)
                 if self.tree.root != self.curr:
                     self.curr = self.curr.parent
                 self.depth -= 1
@@ -215,7 +218,7 @@ class MyTreeReg():
         for ind, row in X.iterrows():
             # s = X.loc[ind]
             pred.append(self.tree.find_proba(row))
-        return pred
+        return np.array(pred)
     
     def feature_importance(self, N_p, N, N_l, N_r, I, I_l, I_r):
         return N_p * (I - N_l * I_l / N_p - N_r * I_r / N_p) / N
